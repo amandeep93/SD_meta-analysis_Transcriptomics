@@ -2,7 +2,6 @@
 
 ############################################################
 # RNA-seq preprocessing pipeline
-# Author: Amandeep Kaur Kang
 ############################################################
 
 # Quality control
