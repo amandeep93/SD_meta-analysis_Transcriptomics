@@ -32,4 +32,4 @@ This repository contains the complete computational workflow used for:
 
 - data/: Input datasets
 - script/: All analysis scripts
-  
+- additional information: software versions used in this project
