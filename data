@@ -1,1 +1,3 @@
-
+Raw transcriptomic datasets used in this study were obtained from the NCBI Gene Expression Omnibus (GEO) database using the accession numbers provided in the manuscript and supplementary tables. 
+Due to repository size considerations, raw and processed expression matrices are not included in this GitHub repository. 
+All analyses can be reproduced using the scripts provided together with the publicly available GEO datasets.
