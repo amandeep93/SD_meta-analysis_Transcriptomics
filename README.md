@@ -31,4 +31,5 @@ This repository contains the complete computational workflow used for:
 ## Repository Structure
 
 - data/: Input datasets
-- scripts/: All analysis scripts
+- script/: All analysis scripts
+  
