@@ -1,1 +1,7 @@
-
+All computational analyses were performed using R version 4.4.1 and Bioconductor version 3.20. 
+Microarray preprocessing and differential expression analysis were conducted using the affy (v1.84.0) and limma (v3.62.2) packages. 
+RNA-seq analyses utilized FastQC v0.12.1 for quality assessment, Trimmomatic v0.39 for adapter trimming, STAR v2.7.10a for sequence alignment against the GRCm39 mouse reference genome, and featureCounts v2.0.6 with GENCODE vM32 annotation for transcript quantification. 
+Differential expression analysis of RNA-seq datasets was performed using DESeq2 v1.46.0. 
+Meta-analysis was conducted using the metafor package v4.6-0 with REML estimation and Knapp–Hartung adjustment. 
+Data visualization and downstream analyses employed ggplot2 v3.5.1, pheatmap v1.0.12, ggraph v2.2.1, igraph v2.1.4, tidyr v1.3.1, dplyr v1.1.4, purrr v1.0.2, and ggrepel v0.9.6. 
+Functional enrichment analysis was performed using DAVID (2021 update), while protein–protein interaction networks were analyzed using STRING database v12.0 and Cytoscape v3.10 with the cytoHubba and MCODE plugins.
