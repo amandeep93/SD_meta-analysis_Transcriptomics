@@ -86,8 +86,3 @@ for ds in "${datasets[@]}"; do
     
     echo "Dataset $ds completed successfully. Raw expression matrices saved to ${RAW_COUNTS_DIR}/${ds}_raw_counts.txt"
 done
-
-echo "======================================================================"
-echo "Upstream RNA-seq Preprocessing complete for all target datasets."
-echo "Ready for downstream R script processing via DESeq2."
-echo "======================================================================"
