@@ -3,6 +3,9 @@
 An integrated, cross-platform computational workflow designed to synthesize independent multi-cohort transcriptomic datasets (Microarray and RNA-seq). This framework identifies conserved, directional molecular signatures associated with acute sleep deprivation across distinct rodent brain regions.
 
 ## Pipeline Architecture Overview
+
+![Pipeline Architecture](figures/Pipeline_Architecture_Workflow.png)
+
 This repository hosts the complete end-to-end reproducible pipeline for:
 - Automated upstream raw sequencing quality control, adapter clipping, and genomic alignment.
 - Standalone Microarray preprocessing, Robust Multi-array Average (RMA) normalization, and `limma` modeling.
