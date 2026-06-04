@@ -1,7 +1,59 @@
-All computational analyses were performed using R version 4.4.1 and Bioconductor version 3.20. 
-Microarray preprocessing and differential expression analysis were conducted using the affy (v1.84.0) and limma (v3.62.2) packages. 
-RNA-seq analyses utilized FastQC v0.12.1 for quality assessment, Trimmomatic v0.39 for adapter trimming, STAR v2.7.10a for sequence alignment against the GRCm39 mouse reference genome, and featureCounts v2.0.6 with GENCODE vM32 annotation for transcript quantification. 
-Differential expression analysis of RNA-seq datasets was performed using DESeq2 v1.46.0. 
-Meta-analysis was conducted using the metafor package v4.6-0 with REML estimation and Knapp–Hartung adjustment. 
-Data visualization and downstream analyses employed ggplot2 v3.5.1, pheatmap v1.0.12, ggraph v2.2.1, igraph v2.1.4, tidyr v1.3.1, dplyr v1.1.4, purrr v1.0.2, and ggrepel v0.9.6. 
-Functional enrichment analysis was performed using DAVID (2021 update), while protein–protein interaction networks were analyzed using STRING database v12.0 and Cytoscape v3.10 with the cytoHubba and MCODE plugins.
+========================================================================
+COMPUTATIONAL ARCHITECTURE, PACKAGES, AND ENVIRONMENT SPECIFICATIONS
+Project: Sleep Deprivation Meta-analysis (Cross-Platform Transcriptomics)
+========================================================================
+
+1. CORE SYSTEM & ENVIRONMENT
+------------------------------------------------------------------------
+Operating System Platform   : Linux / macOS terminal environments
+Base Programming Language   : R Version 4.4.1 (2024-06-14)
+Bioconductor Environment    : Version 3.20
+
+2. UPSTREAM RNA-SEQ PIPELINE BINARIES
+------------------------------------------------------------------------
+Quality Control Tracking    : FastQC v0.12.1
+Sequence Quality Trimming   : Trimmomatic v0.39
+Splice-Aware Read Alignment : STAR v2.7.10a
+Reference Genome Base       : GRCm39 Mouse Genome (Ensembl / NCBI)
+Abundance Quantification    : featureCounts (subread) v2.0.6
+Transcriptome Annotations   : GENCODE vM32 Release
+
+3. INDIVIDUAL PLATFORM DIFFERENTIALLY EXPRESSED GENE (DEG) ENGINES
+------------------------------------------------------------------------
+Microarray Array Parsing    : affy v1.84.0 (Robust Multi-array Average)
+Microarray Linear Modeling  : limma v3.62.2 (Empirical Bayes Moderation)
+RNA-seq Count Modeling     : DESeq2 v1.46.0 (Negative Binomial GLMs)
+
+4. POOLED RESTRICTED MAXIMUM LIKELIHOOD (REML) META-ANALYSIS ENGINE
+------------------------------------------------------------------------
+Synthesis Framework         : metafor v4.6-0
+Estimation Method Parameter : Restricted Maximum Likelihood (REML)
+Variance Corrections        : Knapp–Hartung Adjustments (knha)
+Joint Integration Test      : Fisher's Combined Probability Method (-2 * sum(ln(P)))
+Multiple Testing Control    : Benjamini-Hochberg False Discovery Rate (FDR)
+
+5. DATA WRANGLING, TIDYVERSE, & LOGISTICAL WORKFLOW UTILITIES
+------------------------------------------------------------------------
+Data Frame Manipulations    : dplyr v1.1.4
+Matrix Reshaping / Pivoting  : tidyr v1.3.1
+Iterative List Functions    : purrr v1.0.2
+
+6. REPRODUCIBLE PUBLICATION VISUALIZATION SUITES
+------------------------------------------------------------------------
+Base Programmatic Charting  : ggplot2 v3.5.1
+Hierarchical Clustering Rows : pheatmap v1.0.12
+Non-Overlapping Plot Labels  : ggrepel v0.9.6
+Relational Matrix Parsing   : igraph v2.1.4
+Network Layout / Topology   : ggraph v2.2.1
+
+7. REVENUE RECOGNITION, FUNCTIONAL ENRICHMENT, & FLUID INTERACTION PLOTS
+------------------------------------------------------------------------
+Functional Pathway Mapping  : DAVID Functional Annotation Tool (2021 Update)
+Interactome Database Source : STRING Database v12.0
+Network Visualizer Engine   : Cytoscape Desktop v3.10
+Centrality Topology Plugin  : cytoHubba
+Sub-cluster Module Plugin   : MCODE (Molecular Complex Detection)
+
+========================================================================
+[END OF SPECIFICATIONS FILE]
+========================================================================
