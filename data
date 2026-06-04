@@ -1,3 +1,46 @@
-Raw transcriptomic datasets used in this study were obtained from the NCBI Gene Expression Omnibus (GEO) database using the accession numbers provided in the manuscript and supplementary tables. 
-Due to repository size considerations, raw and processed expression matrices are not included in this GitHub repository. 
-All analyses can be reproduced using the scripts provided together with the publicly available GEO datasets.
+========================================================================
+DATA AVAILABILITY AND SOURCE CORRESPONDENCE STATEMENT
+Project: Sleep Deprivation Meta-analysis (Cross-Platform Transcriptomics)
+========================================================================
+
+1. PUBLIC REPOSITORY REQUISITION
+------------------------------------------------------------------------
+The raw transcriptomic sequencing data and microarray intensity assets 
+synthesized in this study are publicly available and were retrieved from 
+the National Center for Biotechnology Information (NCBI) Gene Expression 
+Omnibus (GEO) database (https://www.ncbi.nlm.nih.gov/geo/).
+
+2. SPECIFIC ACCESSION CORRESPONDENCE
+------------------------------------------------------------------------
+The individual datasets utilized within this meta-analysis framework 
+correspond exactly to the cohort profiles mapped in the manuscript text:
+
+  - Microarray Cohorts (Table 2) : GSE6514, GSE33302
+  - RNA-seq Cohorts (Table 3)    : GSE132074, GSE144957, GSE222410, 
+                                   GSE113754, GSE211088, GSE211301, 
+                                   GSE156925, GSE166831
+
+3. LOCAL REPOSITORY EXCLUSIONS
+------------------------------------------------------------------------
+Due to file size and storage threshold considerations within public code 
+repositories, raw binary array intensities (.CEL files), raw FASTQ sequence 
+reads (.fastq.gz), and intermediate aligned BAM files are excluded from this 
+local GitHub directory. 
+
+4. PIPELINE REPRODUCIBILITY CONSTRAINTS
+------------------------------------------------------------------------
+Full end-to-end exact pipeline replication can be executed seamlessly by:
+  1. Programmatically downloading the target dataset matrices from the 
+     NCBI GEO database using the accessions listed above.
+  2. Placing the source files into their designated subdirectories 
+     under the local 'data/' directory.
+  3. Running the sequential script stack (01 to 08) provided within 
+     the 'script/' directory of this repository.
+
+For further metadata clarifications, structural target annotations, or 
+phenotype mapping assistance, please consult the manuscript's Supplementary 
+Tables or open an issue directly in this repository.
+
+========================================================================
+[END OF DATA AVAILABILITY STATEMENT]
+========================================================================
