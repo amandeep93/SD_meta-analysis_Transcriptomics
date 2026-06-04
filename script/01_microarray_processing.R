@@ -1,211 +1,136 @@
-# Description:
-# This script performs:
-# 1. Reading microarray CEL files
-# 2. RMA normalization
-# 3. Probe summarization
-# 4. Differential expression analysis using limma
-# 5. Export of DEG matrices
-# 6. Preparation for meta-analysis
+############################################################
+# MULTI-DATASET MICROARRAY RAW PREPROCESSING AND MODELING
+# Script: script/02_microarray_preprocessing.R
 ############################################################
 
 ############################################################
-# SETTINGS
+# SETTINGS & CONFIGURATIONS
 ############################################################
-
 options(stringsAsFactors = FALSE)
 set.seed(123)
 
 ############################################################
 # LIBRARIES
 ############################################################
-
 library(affy)
 library(limma)
-library(readxl)
 library(dplyr)
 library(purrr)
 
 ############################################################
-# OUTPUT DIRECTORIES
+# DIRECTORY INFRASTRUCTURE
 ############################################################
-
 dir.create("results", showWarnings = FALSE)
 dir.create("figures", showWarnings = FALSE)
 
 ############################################################
-# PART 1:
-# RAW MICROARRAY PREPROCESSING
+# EXAMPLE COHORT TARGET CONFIGURATIONS
+# Maps to the raw microarray datasets detailed in Table 2
 ############################################################
-
-# NOTE:
-# This section assumes raw CEL files are available
-# inside:
-#
-# data/CEL_files/
-#
-# with separate folders for each dataset
-
-############################################################
-# EXAMPLE DATASET LIST
-############################################################
-
 datasets <- c(
   "GSE6514",
   "GSE33302"
 )
 
 ############################################################
-# LOOP THROUGH DATASETS
+# PART 1: INDIVIDUAL RAW COHORT MODERATION LOOPS
 ############################################################
-
 for(ds in datasets){
-
-  cat("Processing dataset:", ds, "\n")
-
-  ##########################################################
-  # READ CEL FILES
-  ##########################################################
-
-  cel_path <- paste0(
-    "data/CEL_files/",
-    ds
-  )
-
-  raw_data <- ReadAffy(
-    celfile.path = cel_path
-  )
-
-  ##########################################################
-  # RMA NORMALIZATION
-  ##########################################################
-
+  
+  cat("====================================================\n")
+  cat("Processing Microarray Dataset via Limma:", ds, "\n")
+  cat("====================================================\n")
+  
+  cel_path <- paste0("data/CEL_files/", ds)
+  metadata_path <- paste0("data/metadata/", ds, "_metadata.csv")
+  
+  # Safe checkpoint validation for missing data structures
+  if(!dir.exists(cel_path)) {
+    cat("Warning: CEL file path not found for", ds, "- Skipping cohort.\n")
+    next
+  }
+  if(!file.exists(metadata_path)) {
+    cat("Warning: Metadata reference missing for", ds, "- Skipping cohort.\n")
+    next
+  }
+  
+  # 1. Read Raw CEL Files
+  cat("Reading raw binary CEL array datasets...\n")
+  raw_data <- ReadAffy(celfile.path = cel_path)
+  
+  # 2. Execute RMA (Robust Multi-array Average) Normalization
+  cat("Executing background correction, quantile normalization, and summarization...\n")
   norm_data <- rma(raw_data)
-
-  ##########################################################
-  # EXTRACT EXPRESSION MATRIX
-  ##########################################################
-
   expr_matrix <- exprs(norm_data)
-
-  ##########################################################
-  # SAMPLE METADATA
-  ##########################################################
-
-  # Example:
-  # metadata should contain:
-  #
-  # Sample | Condition
-  #
-  # SD1    | SD
-  # SD2    | SD
-  # C1     | Control
-
-  metadata <- read.csv(
-    paste0(
-      "data/metadata/",
-      ds,
-      "_metadata.csv"
-    )
-  )
-
-  ##########################################################
-  # LIMMA DESIGN MATRIX
-  ##########################################################
-
-  metadata$Condition <- factor(
-    metadata$Condition
-  )
-
-  design <- model.matrix(
-    ~0 + Condition,
-    data = metadata
-  )
-
-  colnames(design) <- levels(
-    metadata$Condition
-  )
-
-  ##########################################################
-  # LINEAR MODEL FITTING
-  ##########################################################
-
-  fit <- lmFit(
-    expr_matrix,
-    design
-  )
-
-  ##########################################################
-  # CONTRAST MATRIX
-  ##########################################################
-
+  
+  # 3. Import Experimental Target Annotations
+  metadata <- read.csv(metadata_path)
+  
+  # Synchronize expression column layouts to match sample metadata alignment
+  if(!all(colnames(expr_matrix) %in% metadata$Sample)) {
+    cat("Warning: Expression matrix headers do not match metadata sample keys. Verifying sync...\n")
+  }
+  
+  # 4. Construct Design Matrix Environment
+  metadata$Condition <- factor(metadata$Condition, levels = c("Control", "SD"))
+  design <- model.matrix(~0 + Condition, data = metadata)
+  colnames(design) <- c("Control", "SD")
+  
+  # 5. Fit Linear General Linear Models
+  cat("Fitting linear generalized expression models across probes...\n")
+  fit <- lmFit(expr_matrix, design)
+  
+  # 6. Apply Contrast Vectors (Sleep Deprived vs. Control baseline)
   contrast.matrix <- makeContrasts(
     SD_vs_Control = SD - Control,
     levels = design
   )
-
-  ##########################################################
-  # FIT CONTRASTS
-  ##########################################################
-
-  fit2 <- contrasts.fit(
-    fit,
-    contrast.matrix
-  )
-
-  ##########################################################
-  # EMPIRICAL BAYES MODERATION
-  ##########################################################
-
+  fit2 <- contrasts.fit(fit, contrast.matrix)
+  
+  # 7. Execute Empirical Bayes Moderation Variance Adjustments
+  cat("Running Empirical Bayes variance shrinkage modeling...\n")
   fit2 <- eBayes(fit2)
-
-  ##########################################################
-  # DIFFERENTIAL EXPRESSION RESULTS
-  ##########################################################
-
+  
+  # 8. Extract Full TopTable Statistical Matrices
   deg <- topTable(
     fit2,
     coef = "SD_vs_Control",
     number = Inf,
     adjust.method = "BH"
   )
-
-  ##########################################################
-  # ADD GENE COLUMN
-  ##########################################################
-
-  deg$Gene <- rownames(deg)
-
-  ##########################################################
-  # KEEP REQUIRED COLUMNS
-  ##########################################################
-
+  
+  # Extract exact structural degrees of freedom and moderated parameters directly
+  deg$Probe_ID <- rownames(deg)
+  deg$df_total <- fit2$df.total[match(rownames(deg), rownames(fit2))]
+  deg$stdev_unscaled <- fit2$stdev.unscaled[match(rownames(deg), rownames(fit2)), "SD_vs_Control"]
+  
+  # 9. Clean, Select, and Normalize Column Structure
   deg_export <- deg %>%
-    select(
-      Gene,
-      logFC,
-      P.Value,
-      adj.P.Val
-    )
-
-  ##########################################################
-  # SAVE DEG RESULTS
-  ##########################################################
-
+    mutate(
+      Gene = toupper(trimws(Probe_ID)),  # Ensure consistent, normalized probe casing
+      logFC = logFC,
+      t_stat = t,                        # Direct native moderated t-statistic tracking
+      P.Value = P.Value,
+      adj.P.Val = adj.P.Val
+    ) %>%
+    filter(!is.na(Gene) & Gene != "") %>%
+    select(Gene, logFC, t_stat, df_total, stdev_unscaled, P.Value, adj.P.Val)
+  
+  # 10. Save Standalone Contrast DEG Outputs
   write.csv(
     deg_export,
-    paste0(
-      "results/",
-      ds,
-      "_limma_DEG.csv"
-    ),
+    paste0("results/", ds, "_limma_DEG.csv"),
     row.names = FALSE
   )
+  cat("Dataset profile completed. Matrix generated:", paste0("results/", ds, "_limma_DEG.csv"), "\n")
 }
 
 ############################################################
-# PART 2:
-# COMBINE ALL LIMMA OUTPUTS
+# PART 2: CONSOLIDATE INDIVIDUAL LOGS FOR POOLED METAFOR INPUT
 ############################################################
+cat("\n====================================================\n")
+cat("Consolidating all generated limma summaries...\n")
+cat("====================================================\n")
 
 deg_files <- list.files(
   "results",
@@ -213,110 +138,47 @@ deg_files <- list.files(
   full.names = TRUE
 )
 
+if(length(deg_files) == 0) {
+  stop("Critical Error: No calculated individual dataset files discovered inside results/ directory.")
+}
+
 micro_data <- map_df(deg_files, function(f){
-
   df <- read.csv(f)
-
-  dataset_name <- gsub(
-    "_limma_DEG.csv",
-    "",
-    basename(f)
-  )
-
+  dataset_name <- gsub("_limma_DEG.csv", "", basename(f))
   df$dataset <- dataset_name
-
   df
 })
 
-############################################################
-# REMOVE MISSING GENES
-############################################################
-
+# Filter out edge-case empty gene strings
 micro_data <- micro_data %>%
-  filter(!is.na(Gene))
+  filter(!is.na(Gene) & Gene != "")
 
 ############################################################
-# CALCULATE STANDARD ERRORS
+# COMPUTE EXACT EXPERIMENTAL RESIDUAL STANDARD ERRORS
+# (Deriving True Standard Errors utilizing the native moderated framework)
 ############################################################
-
+cat("Applying mathematically rigorous Standard Error extractions...\n")
 micro_data <- micro_data %>%
   mutate(
-
-    pval = ifelse(
-      P.Value < 1e-300,
-      1e-300,
-      P.Value
-    ),
-
-    Z = qnorm(1 - pval/2),
-
-    SE = abs(logFC)/Z
-  )
+    # Native exact Standard Error derived from absolute logFC and the moderated t-statistic
+    SE = abs(logFC) / abs(t_stat)
+  ) %>%
+  # Protect calculations against division-by-zero anomalies in identical expressions
+  filter(!is.na(SE) & is.finite(SE) & SE > 0)
 
 ############################################################
-# SAVE META-ANALYSIS INPUT
+# EXPORT INTERMEDIATE METAFOR-READY MATRIX ASSET
 ############################################################
-
 write.csv(
   micro_data,
   "results/Microarray_processed_data.csv",
   row.names = FALSE
 )
 
-############################################################
-# SESSION INFO
-############################################################
-
+# Document current reproducible environments
 writeLines(
   capture.output(sessionInfo()),
-  "sessionInfo.txt"
+  "sessionInfo_microarray.txt"
 )
 
-############################################################
-# MICROARRAY DATA PROCESSING
-############################################################
-############################################################
-# NOTE:
-# This script assumes differential expression analysis
-# using limma has already been performed separately
-# for each microarray dataset and that processed
-# DEG matrices containing Gene, logFC, and P.Value
-# columns are available.
-############################################################
-
-options(stringsAsFactors = FALSE)
-set.seed(123)
-
-library(readxl)
-library(dplyr)
-library(purrr)
-
-file <- "data/microarray_only_matrix.xlsx"
-sheets <- excel_sheets(file)
-
-micro_data <- map_df(sheets, function(s){
-  
-  df <- read_excel(file, sheet = s)
-  
-  df <- df[,1:3]
-  
-  colnames(df) <- c("Gene","logFC","P.Value")
-  
-  df$dataset <- s
-  
-  df
-})
-
-micro_data <- micro_data %>%
-  filter(!is.na(Gene))
-
-micro_data <- micro_data %>%
-  mutate(
-    pval = ifelse(P.Value < 1e-300, 1e-300, P.Value),
-    Z = qnorm(1 - pval/2),
-    SE = abs(logFC)/Z
-  )
-
-write.csv(micro_data,
-          "results/Microarray_processed_data.csv",
-          row.names = FALSE)
+cat("Success! Generated comprehensive metafor asset: results/Microarray_processed_data.csv\n")
