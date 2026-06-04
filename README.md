@@ -4,8 +4,6 @@ An integrated, cross-platform computational workflow designed to synthesize inde
 
 ## Pipeline Architecture Overview
 
-![Pipeline Architecture](figures/Pipeline_Architecture_Workflow.png)
-
 This repository hosts the complete end-to-end reproducible pipeline for:
 - Automated upstream raw sequencing quality control, adapter clipping, and genomic alignment.
 - Standalone Microarray preprocessing, Robust Multi-array Average (RMA) normalization, and `limma` modeling.
