@@ -4,8 +4,6 @@
 #
 # Microarray + RNA-seq integration using inverse-variance
 # weighting of platform-level random-effects estimates.
-#
-# Fisher's combined probability test is NOT used.
 ############################################################
 
 ############################################################
