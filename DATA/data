@@ -3,44 +3,132 @@ DATA AVAILABILITY AND SOURCE CORRESPONDENCE STATEMENT
 Project: Sleep Deprivation Meta-analysis (Cross-Platform Transcriptomics)
 ========================================================================
 
-1. PUBLIC REPOSITORY REQUISITION
+1. PUBLIC DATA SOURCE
 ------------------------------------------------------------------------
-The raw transcriptomic sequencing data and microarray intensity assets 
-synthesized in this study are publicly available and were retrieved from 
-the National Center for Biotechnology Information (NCBI) Gene Expression 
-Omnibus (GEO) database (https://www.ncbi.nlm.nih.gov/geo/).
+All transcriptomic datasets synthesized in this study were obtained from
+the National Center for Biotechnology Information (NCBI) Gene Expression
+Omnibus (GEO) database:
 
-2. SPECIFIC ACCESSION CORRESPONDENCE
+https://www.ncbi.nlm.nih.gov/geo/
+
+The GEO accession numbers listed below provide the primary source
+identifiers for the datasets included in the present analysis.
+
+
+2. DATASET AND ACCESSION CORRESPONDENCE
 ------------------------------------------------------------------------
-The individual datasets utilized within this meta-analysis framework 
-correspond exactly to the cohort profiles mapped in the manuscript text:
+The datasets represented in the current repository correspond to the
+cohorts identified in the manuscript as follows:
 
-  - Microarray Cohorts (Table 2) : GSE6514, GSE33302
-  - RNA-seq Cohorts (Table 3)    : GSE132074, GSE144957, GSE222410, 
-                                   GSE113754, GSE211088, GSE211301, 
-                                   GSE156925, GSE166831
+  - Microarray Cohorts (Table 2):
+      GSE6514
+      GSE33302
 
-3. LOCAL REPOSITORY EXCLUSIONS
+  - RNA-seq Cohorts (Table 3):
+      GSE132074
+      GSE144957
+      GSE222410
+      GSE113754
+      GSE211088
+      GSE211301
+      GSE156925
+      GSE166831
+
+The GEO accession numbers should be used to identify and retrieve the
+corresponding raw or processed source data and associated experimental
+metadata.
+
+
+3. LOCAL REPOSITORY DATA POLICY
 ------------------------------------------------------------------------
-Due to file size and storage threshold considerations within public code 
-repositories, raw binary array intensities (.CEL files), raw FASTQ sequence 
-reads (.fastq.gz), and intermediate aligned BAM files are excluded from this 
-local GitHub directory. 
+Raw sequencing reads, raw microarray CEL files, and large intermediate
+alignment files may be excluded from this GitHub repository because of
+file-size and repository-storage limitations.
 
-4. PIPELINE REPRODUCIBILITY CONSTRAINTS
+Specifically, the following large files are not distributed as part of
+the code repository:
+
+  - Raw FASTQ sequencing files (.fastq.gz)
+  - Raw microarray CEL files (.CEL)
+  - Intermediate aligned BAM files
+
+These files remain available through the corresponding public GEO
+accessions.
+
+The repository instead contains the analysis scripts and, where
+applicable, derived count matrices, processed results, metadata files,
+and visualization outputs required for downstream analysis.
+
+
+4. REPRODUCIBILITY AND DATA RETRIEVAL
 ------------------------------------------------------------------------
-Full end-to-end exact pipeline replication can be executed seamlessly by:
-  1. Programmatically downloading the target dataset matrices from the 
-     NCBI GEO database using the accessions listed above.
-  2. Placing the source files into their designated subdirectories 
+The computational workflow can be reproduced by retrieving the
+corresponding source datasets and metadata from NCBI GEO and placing
+the required files in the directory structure specified by this
+repository.
+
+The general analysis sequence is:
+
+  1. Retrieve the required raw or processed source data from GEO using
+     the accession numbers listed above.
+
+  2. Place the downloaded files in the appropriate subdirectories
      under the local 'data/' directory.
-  3. Running the sequential script stack (01 to 08) provided within 
-     the 'script/' directory of this repository.
 
-For further metadata clarifications, structural target annotations, or 
-phenotype mapping assistance, please consult the manuscript's Supplementary 
-Tables or open an issue directly in this repository.
+  3. For RNA-seq datasets requiring upstream processing, perform quality
+     control, adapter trimming, alignment, and gene-level quantification
+     using Script 01.
+
+  4. Perform individual microarray and RNA-seq differential-expression
+     analyses using Scripts 02 and 05.
+
+  5. Perform platform-specific random-effects meta-analyses using
+     Scripts 03 and 06.
+
+  6. Perform cross-platform precision-weighted synthesis using Script 07.
+
+  7. Perform brain-region-stratified analyses using Script 08 where
+     sufficiently detailed region-level experimental metadata are
+     available.
+
+
+5. METADATA AND EXPERIMENTAL-UNIT REQUIREMENTS
+------------------------------------------------------------------------
+Reproducibility of the meta-analysis requires the correct mapping of
+samples, experimental conditions, and contrasts for each GEO dataset.
+
+In particular, datasets containing multiple brain regions, time points,
+experimental contrasts, or shared control groups require
+sample/contrast-level metadata to ensure that independent experimental
+units are not incorrectly treated as independent studies.
+
+For regional analyses, brain-region assignments must therefore be made
+at the level corresponding to the differential-expression contrast
+rather than being inferred solely from the GEO accession number.
+
+
+6. REFERENCE AND SOFTWARE INFORMATION
+------------------------------------------------------------------------
+RNA-seq preprocessing uses the GRCm39 reference genome with the
+GENCODE vM32 annotation framework.
+
+The analysis scripts document the principal software dependencies and
+analytical procedures used for preprocessing, differential expression,
+random-effects meta-analysis, cross-platform integration, and
+brain-region analysis.
+
+
+7. FURTHER INFORMATION
+------------------------------------------------------------------------
+Additional dataset characteristics, experimental metadata, sample
+mappings, and phenotype information are provided in the manuscript
+and its Supplementary Tables.
+
+Questions concerning the repository structure, dataset mapping, or
+analysis implementation may be raised through the repository issue
+tracker.
+
 
 ========================================================================
-[END OF DATA AVAILABILITY STATEMENT]
+[END OF DATA AVAILABILITY AND SOURCE CORRESPONDENCE STATEMENT]
 ========================================================================
