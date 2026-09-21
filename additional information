@@ -9,51 +9,203 @@ Operating System Platform   : Linux / macOS terminal environments
 Base Programming Language   : R Version 4.4.1 (2024-06-14)
 Bioconductor Environment    : Version 3.20
 
+
 2. UPSTREAM RNA-SEQ PIPELINE BINARIES
 ------------------------------------------------------------------------
-Quality Control Tracking    : FastQC v0.12.1
-Sequence Quality Trimming   : Trimmomatic v0.39
-Splice-Aware Read Alignment : STAR v2.7.10a
-Reference Genome Base       : GRCm39 Mouse Genome (Ensembl / NCBI)
-Abundance Quantification    : featureCounts (subread) v2.0.6
-Transcriptome Annotations   : GENCODE vM32 Release
+Quality Control              : FastQC v0.12.1
+Sequence Quality Trimming    : Trimmomatic v0.39
+Splice-Aware Read Alignment  : STAR v2.7.10a
+Reference Genome             : GRCm39 Mouse Genome
+Gene Annotation              : GENCODE vM32
+Abundance Quantification     : featureCounts (Subread) v2.0.6
 
-3. INDIVIDUAL PLATFORM DIFFERENTIALLY EXPRESSED GENE (DEG) ENGINES
-------------------------------------------------------------------------
-Microarray Array Parsing    : affy v1.84.0 (Robust Multi-array Average)
-Microarray Linear Modeling  : limma v3.62.2 (Empirical Bayes Moderation)
-RNA-seq Count Modeling     : DESeq2 v1.46.0 (Negative Binomial GLMs)
+RNA-seq alignment and
+quantification are performed
+using a GRCm39 reference with
+GENCODE vM32 gene annotation.
 
-4. POOLED RESTRICTED MAXIMUM LIKELIHOOD (REML) META-ANALYSIS ENGINE
-------------------------------------------------------------------------
-Synthesis Framework         : metafor v4.6-0
-Estimation Method Parameter : Restricted Maximum Likelihood (REML)
-Variance Corrections        : Knapp–Hartung Adjustments (knha)
-Joint Integration Test      : Fisher's Combined Probability Method (-2 * sum(ln(P)))
-Multiple Testing Control    : Benjamini-Hochberg False Discovery Rate (FDR)
 
-5. DATA WRANGLING, TIDYVERSE, & LOGISTICAL WORKFLOW UTILITIES
+3. INDIVIDUAL PLATFORM DIFFERENTIAL-EXPRESSION ENGINES
 ------------------------------------------------------------------------
-Data Frame Manipulations    : dplyr v1.1.4
-Matrix Reshaping / Pivoting  : tidyr v1.3.1
-Iterative List Functions    : purrr v1.0.2
+Microarray Array Processing  : affy v1.84.0
+Microarray Normalization     : Robust Multi-array Average (RMA)
+Microarray Linear Modeling   : limma v3.62.2
+RNA-seq Count Modeling       : DESeq2 v1.46.0
 
-6. REPRODUCIBLE PUBLICATION VISUALIZATION SUITES
-------------------------------------------------------------------------
-Base Programmatic Charting  : ggplot2 v3.5.1
-Hierarchical Clustering Rows : pheatmap v1.0.12
-Non-Overlapping Plot Labels  : ggrepel v0.9.6
-Relational Matrix Parsing   : igraph v2.1.4
-Network Layout / Topology   : ggraph v2.2.1
+Microarray differential
+expression is estimated using
+limma empirical Bayes moderated
+linear modeling.
 
-7. REVENUE RECOGNITION, FUNCTIONAL ENRICHMENT, & FLUID INTERACTION PLOTS
+RNA-seq differential expression
+is estimated using the negative-
+binomial generalized linear model
+implemented in DESeq2.
+
+
+4. EFFECT-SIZE AND STANDARD-ERROR EXTRACTION
 ------------------------------------------------------------------------
-Functional Pathway Mapping  : DAVID Functional Annotation Tool (2021 Update)
-Interactome Database Source : STRING Database v12.0
-Network Visualizer Engine   : Cytoscape Desktop v3.10
-Centrality Topology Plugin  : cytoHubba
-Sub-cluster Module Plugin   : MCODE (Molecular Complex Detection)
+Microarray Effect Estimate    : limma log2 fold change
+Microarray Standard Error     : Derived from moderated t-statistic
+
+RNA-seq Effect Estimate       : DESeq2 log2 fold change
+RNA-seq Standard Error        : Native DESeq2 lfcSE
+
+For microarray data, standard
+errors are calculated from the
+limma moderated t-statistic:
+
+    SE = |log2FC| / |t-statistic|
+
+For RNA-seq data, the native
+DESeq2 lfcSE is retained without
+re-estimation.
+
+
+5. PLATFORM-SPECIFIC META-ANALYSIS
+------------------------------------------------------------------------
+Meta-analysis Framework       : metafor v4.6-0
+Meta-analysis Model            : Random-effects model
+Estimation Method              : Restricted Maximum Likelihood (REML)
+Small-sample Inference         : Knapp–Hartung adjustment (knha)
+
+Heterogeneity Statistics       :
+    - I²
+    - tau²
+    - 95% prediction interval
+
+Multiple Testing Correction    :
+    Benjamini-Hochberg False
+    Discovery Rate (FDR)
+
+Microarray and RNA-seq datasets
+are first synthesized separately
+within their respective platforms.
+
+Platform-specific meta-analysis
+is performed using study-level
+effect estimates and their
+corresponding standard errors.
+
+
+6. CROSS-PLATFORM SYNTHESIS
+------------------------------------------------------------------------
+Cross-Platform Framework       : Precision-weighted effect-size synthesis
+Weighting Method               : Inverse-variance weighting
+Platform Estimates              :
+    - Microarray pooled effect
+    - RNA-seq pooled effect
+
+Platform-level estimates are
+combined using inverse-variance
+precision weighting:
+
+    Weight = 1 / SE²
+
+The resulting cross-platform
+analysis reports:
+
+    - Combined log2 fold change
+    - Combined standard error
+    - 95% confidence interval
+    - Two-sided p-value
+    - Benjamini-Hochberg FDR
+
+Directional concordance between
+microarray and RNA-seq estimates
+is evaluated before cross-platform
+synthesis.
+
+The cross-platform analysis is
+a precision-weighted synthesis of
+platform-level random-effects
+estimates and is not treated as a
+replacement for a full multilevel
+study-level model.
+
+
+7. BRAIN-REGION-STRATIFIED ANALYSIS
+------------------------------------------------------------------------
+Regional Analysis Framework     :
+    Region-stratified random-effects
+    meta-analysis
+
+Regional Meta-analysis Model    : REML
+Small-sample Inference          : Knapp–Hartung adjustment
+
+Regional Heterogeneity Measures :
+    - I²
+    - tau²
+    - 95% prediction interval
+
+Cross-platform regional synthesis:
+    Precision-weighted synthesis of
+    regional platform-level estimates
+
+Brain-region analyses are performed
+using region- and contrast-level
+experimental metadata where available.
+
+Datasets containing multiple brain
+regions, time points, or experimental
+contrasts are not assumed to represent
+a single independent observation.
+
+
+8. MICROARRAY PROBE SELECTION
+------------------------------------------------------------------------
+Probe Selection Principle        :
+    Treatment-independent selection
+
+Gene-level probe selection is based
+on mean expression rather than the
+magnitude of the observed treatment
+effect.
+
+This avoids selecting probes according
+to their sleep-deprivation-associated
+effect size and thereby reduces
+outcome-dependent selection bias in
+the downstream meta-analysis.
+
+
+9. DATA WRANGLING & VISUALIZATION
+------------------------------------------------------------------------
+Data Manipulation                : dplyr
+Data Restructuring               : tidyr
+Iterative Workflows              : purrr
+Statistical Visualization        : ggplot2
+Heatmap Visualization            : pheatmap
+Network Visualization             : igraph / ggraph
+Meta-analysis                    : metafor
+
+
+10. PRIMARY SIGNIFICANCE CRITERIA
+------------------------------------------------------------------------
+False Discovery Rate             : FDR < 0.05
+Effect-size threshold             : |log2FC| >= 1
+
+Genes satisfying both criteria
+are retained as significant
+cross-platform or regional
+meta-analysis findings,
+as appropriate to the analysis.
+
+
+11. SOFTWARE REPRODUCIBILITY
+------------------------------------------------------------------------
+All software versions listed above
+should be retained with the analysis
+environment when reproducing the
+computational workflow.
+
+Reference genome and annotation
+versions should remain consistent
+between RNA-seq alignment,
+quantification, and downstream
+gene-level analysis.
 
 ========================================================================
-[END OF SPECIFICATIONS FILE]
+[END OF COMPUTATIONAL ARCHITECTURE,
+ PACKAGES, AND ENVIRONMENT SPECIFICATIONS]
 ========================================================================
