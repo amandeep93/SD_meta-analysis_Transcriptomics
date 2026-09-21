@@ -41,11 +41,10 @@ rna_data_cleaned <- rna_data %>%
   mutate(Gene = toupper(trimws(Gene))) %>%
   filter(!is.na(Gene) & Gene != "" & !is.na(log2FoldChange) & !is.na(lfcSE)) %>%
   # If any overlapping transcript profiles remain for a gene within a single cohort,
-  # subset to retain the single variant with maximum absolute change to safeguard independence.
+
   group_by(dataset, Gene) %>%
-  filter(abs(log2FoldChange) == max(abs(log2FoldChange))) %>%
-  slice(1) %>%
-  ungroup()
+distinct(Gene, .keep_all = TRUE) %>%
+ungroup()
 
 ############################################################
 # EXECUTE PARALLELIZED REML META-ANALYSIS LOOP
