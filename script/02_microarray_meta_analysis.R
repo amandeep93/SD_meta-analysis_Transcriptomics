@@ -38,10 +38,13 @@ micro_data_cleaned <- micro_data %>%
   filter(!is.na(Gene) & Gene != "" & !is.na(logFC) & !is.na(SE)) %>%
   # If a dataset features multiple probe variations for a single gene symbol,
   # retain only the single most responsive probe per dataset to protect independence assumptions
-  group_by(dataset, Gene) %>%
-  filter(abs(logFC) == max(abs(logFC))) %>%
-  slice(1) %>% # Eliminate absolute value matching ties safely
-  ungroup()
+ group_by(dataset, Gene) %>%
+slice_max(
+  order_by = mean_expression,
+  n = 1,
+  with_ties = FALSE
+) %>%
+ungroup()
 
 ############################################################
 # EXECUTE PARALLELIZED REML META-ANALYSIS LOOP
@@ -67,11 +70,12 @@ micro_meta_res <- micro_data_cleaned %>%
         sei = df$SE,
         method = "REML",
         test = "knha"
-      ),
+      ), pred <- predict(model), 
       error = function(e) NULL
     )
     
     if(is.null(model)) return(NULL)
+    
     
     # Construct unified statistical matrix row safely
     data.frame(
@@ -79,6 +83,8 @@ micro_meta_res <- micro_data_cleaned %>%
       meta_logFC  = as.numeric(model$b),
       CI_lb       = model$ci.lb,
       CI_ub       = model$ci.ub,
+      PI_lb = pred$pi.lb,
+      PI_ub = pred$pi.ub
       meta_pval   = model$pval,
       I2          = model$I2,
       tau2        = model$tau2,
