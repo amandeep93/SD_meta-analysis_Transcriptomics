@@ -1,196 +1,454 @@
 ############################################################
-# RIGOROUS REGIONAL FISHER-TO-FDR CROSS-PLATFORM INTEGRATION
-# Script: script/08_brain_region_analysis.R
+# PRECISION-WEIGHTED CROSS-PLATFORM META-ANALYSIS
+# Script: script/07_cross_platform_meta_analysis.R
+#
+# Microarray + RNA-seq integration using inverse-variance
+# weighting of platform-level random-effects estimates.
+#
+# Fisher's combined probability test is NOT used.
+############################################################
+
+############################################################
+# SETTINGS & CONFIGURATIONS
 ############################################################
 
 options(stringsAsFactors = FALSE)
 set.seed(123)
 
+############################################################
+# LIBRARIES
+############################################################
+
 library(dplyr)
-library(tidyr)
-library(purrr)
-library(pheatmap)
-library(ggplot2)
-library(igraph)
-library(ggraph)
-
-dir.create("results", showWarnings = FALSE)
-dir.create("figures", showWarnings = FALSE)
-
-meta <- read.csv("data/metadata.csv")
-
-cat("Compiling cross-platform expression tables from generated assets...\n")
-micro_files <- list.files("results", pattern = "GSE.*_limma_DEG.csv", full.names = TRUE)
-rna_files   <- list.files("results/rna_individual", pattern = "GSE.*_DESeq2_DEG.csv", full.names = TRUE)
-
-if(length(micro_files) == 0 | length(rna_files) == 0) {
-  stop("Critical Error: Individual dataset log files missing. Run scripts 02 and 05 first.")
-}
-
-micro_data <- map_df(micro_files, function(f) {
-  df <- read.csv(f)
-  df$dataset <- gsub("_limma_DEG.csv", "", basename(f))
-  df$platform <- "Microarray"
-  df %>% select(Gene, logFC, P.Value, dataset, platform) %>% rename(pval = P.Value)
-})
-
-rna_data <- map_df(rna_files, function(f) {
-  df <- read.csv(f)
-  df$dataset := gsub("_DESeq2_DEG.csv", "", basename(f))
-  df$platform <- "RNAseq"
-  df %>% select(Gene, log2FoldChange, pvalue, dataset, platform) %>% rename(logFC = log2FoldChange, pval = pvalue)
-})
-
-all_data <- bind_rows(micro_data, rna_data) %>%
-  mutate(Gene = toupper(trimws(Gene))) %>%
-  filter(!is.na(Gene) & Gene != "")
-
-all_data <- all_data %>%
-  left_join(meta %>% select(Sample_ID, brain_region), by = c("dataset" = "Sample_ID")) %>%
-  filter(!is.na(brain_region) & !brain_region %in% c("Whole_Brain", "Pons"))
-
-tissues <- unique(all_data$brain_region)
-tissue_gene_lists <- list()
 
 ############################################################
-# REGIONAL FISHER META-ANALYSIS LOOP
+# INPUT FILES
 ############################################################
-for(t in tissues) {
-  cat("Running Tissue Fisher Meta-Analysis:", t, "\n")
-  
-  tissue_data <- all_data %>% filter(brain_region == t)
-  
-  # Group by Gene and Platform to get clean platform-specific averages/p-values first
-  platform_summaries <- tissue_data %>%
-    group_by(Gene, platform) %>%
-    summarise(
-      mean_logFC = mean(logFC, na.rm = TRUE),
-      min_pval = min(pval, na.rm = TRUE), # Conservatively track tracking p-value
-      .groups = "drop"
-    )
-  
-  # Pivot to check cross-platform presence
-  wide_summary <- platform_summaries %>%
-    pivot_wider(
-      names_from = platform, 
-      values_from = c(mean_logFC, min_pval),
-      values_fill = list(mean_logFC = NA, min_pval = NA)
-    )
-  
-  if(!"mean_logFC_Microarray" %in% colnames(wide_summary) | !"mean_logFC_RNAseq" %in% colnames(wide_summary)) next
-  
-  # Filter for cross-platform presence and directional harmony
-  regional_candidates <- wide_summary %>%
-    filter(!is.na(mean_logFC_Microarray) & !is.na(mean_logFC_RNAseq)) %>%
-    filter(sign(mean_logFC_Microarray) == sign(mean_logFC_RNAseq))
-  
-  if(nrow(regional_candidates) == 0) next
-  
-  # EXECUTE THE FISHER-TO-FDR TRANSITION FOR THIS SPECIFIC TISSUE
-  regional_analysis <- regional_candidates %>%
-    mutate(
-      p_micro_safe = ifelse(min_pval_Microarray == 0, 1e-300, min_pval_Microarray),
-      p_rna_safe   = ifelse(min_pval_RNAseq == 0, 1e-300, min_pval_RNAseq),
-      
-      # Fisher Formula
-      fisher_stat = -2 * (log(p_micro_safe) + log(p_rna_safe)),
-      fisher_p = pchisq(fisher_stat, df = 4, lower.tail = FALSE),
-      
-      combined_logFC = (mean_logFC_Microarray + mean_logFC_RNAseq) / 2
-    )
-  
-  # Apply Benjamini-Hochberg FDR correction locally within this tissue
-  regional_analysis$FDR <- p.adjust(regional_analysis$fisher_p, method = "BH")
-  
-  # Save the statistically verified regional matrix
-  write.csv(
-    regional_analysis,
-    paste0("results/", t, "_CrossPlatformGenes.csv"),
-    row.names = FALSE
+
+micro_path <- "results/Microarray_Meta_AllGenes.csv"
+rna_path   <- "results/RNAseq_Meta_AllGenes.csv"
+
+if(!file.exists(micro_path)) {
+  stop(
+    "Critical Error: Microarray meta-analysis file not found: ",
+    micro_path,
+    "\nRun Script 03 first."
   )
-  
-  # Isolate significant tissue markers (FDR < 0.05) for network integration
-  sig_tissue_genes <- regional_analysis %>%
-    filter(FDR < 0.05) %>%
-    pull(Gene)
-  
-  tissue_gene_lists[[t]] <- sig_tissue_genes
+}
+
+if(!file.exists(rna_path)) {
+  stop(
+    "Critical Error: RNA-seq meta-analysis file not found: ",
+    rna_path,
+    "\nRun Script 06 first."
+  )
 }
 
 ############################################################
-# GLOBAL HEATMAP & PLOTTING CODE (PRESERVED & PROTECTED)
+# LOAD PLATFORM-SPECIFIC META-ANALYSIS RESULTS
 ############################################################
-cat("Generating plots...\n")
-marker_matrix_prep <- all_data %>%
-  group_by(Gene, brain_region) %>%
-  summarise(mean_logFC = mean(logFC, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = brain_region, values_from = mean_logFC)
 
-mat <- as.matrix(marker_matrix_prep[, -1])
-rownames(mat) <- marker_matrix_prep$Gene
-mat[is.na(mat)] <- 0
-mat <- mat[apply(mat, 1, var) > 0, , drop = FALSE]
+cat("Loading platform-specific meta-analysis results...\n")
 
-mat[mat > 4]  <- 4
-mat[mat < -4] <- -4
-
-gene_strength <- apply(abs(mat), 1, max)
-top_genes <- names(sort(gene_strength, decreasing = TRUE))[1:100]
-top_mat <- mat[top_genes, , drop = FALSE]
-
-pheatmap(
-  top_mat,
-  color = colorRampPalette(c("blue", "white", "red"))(100),
-  clustering_distance_rows = "euclidean",
-  clustering_distance_cols = "euclidean",
-  clustering_method = "ward.D2",
-  fontsize_row = 4.5,
-  fontsize_col = 10,
-  border_color = NA,
-  filename = "figures/Global_Brain_Heatmap.png",
-  height = 11, width = 6
+micro <- read.csv(
+  micro_path,
+  stringsAsFactors = FALSE
 )
 
-df_bar <- data.frame(
-  Tissue = names(sapply(tissue_gene_lists, length)),
-  Genes  = as.numeric(sapply(tissue_gene_lists, length))
-) %>% arrange(desc(Genes))
+rna <- read.csv(
+  rna_path,
+  stringsAsFactors = FALSE
+)
 
-barplot_fig <- ggplot(df_bar, aes(x = reorder(Tissue, Genes), y = Genes, fill = Tissue)) +
-  geom_bar(stat = "identity", show.legend = FALSE) +
-  coord_flip() +
-  theme_classic(base_size = 11) +
-  labs(title = "Conserved Cross-Platform Genes per Brain Structure", x = "", y = "Significantly Consistent Genes (FDR < 0.05)")
+############################################################
+# VERIFY REQUIRED COLUMNS
+############################################################
 
-ggsave("figures/Tissue_Gene_Counts.png", barplot_fig, width = 6, height = 4, dpi = 300)
+required_micro <- c(
+  "Gene",
+  "meta_logFC",
+  "meta_SE",
+  "meta_pval"
+)
 
-edges <- data.frame()
-tissue_names <- names(tissue_gene_lists)
+required_rna <- c(
+  "Gene",
+  "meta_logFC",
+  "meta_SE",
+  "meta_pval"
+)
 
-if(length(tissue_names) >= 2) {
-  for(i in 1:(length(tissue_names)-1)) {
-    for(j in (i+1):length(tissue_names)) {
-      g1 <- tissue_gene_lists[[tissue_names[i]]]
-      g2 <- tissue_gene_lists[[tissue_names[j]]]
-      overlap <- length(intersect(g1, g2))
-      if(overlap > 0) {
-        edges <- rbind(edges, data.frame(from = tissue_names[i], to = tissue_names[j], weight = overlap))
-      }
-    }
-  }
-}
+missing_micro <- setdiff(required_micro, colnames(micro))
+missing_rna   <- setdiff(required_rna, colnames(rna))
 
-if(nrow(edges) > 0) {
-  g_net <- graph_from_data_frame(edges, directed = FALSE)
-  png("figures/Tissue_Overlap_Network.png", width = 1800, height = 1500, res = 300)
-  print(
-    ggraph(g_net, layout = "stress") +
-      geom_edge_link(aes(edge_width = weight), alpha = 0.5, color = "gray40") +
-      geom_node_point(size = 7, color = "darkblue") +
-      geom_node_text(aes(label = name), repel = TRUE, fontface = "bold", size = 3) +
-      scale_edge_width_continuous(range = c(0.5, 4.5), name = "Overlapping Signif. Genes") +
-      theme_void() +
-      theme(legend.position = "bottom")
+if(length(missing_micro) > 0) {
+  stop(
+    "Microarray meta-analysis file is missing required columns: ",
+    paste(missing_micro, collapse = ", "),
+    "\nModify Script 03 to export meta_SE."
   )
-  dev.off()
 }
+
+if(length(missing_rna) > 0) {
+  stop(
+    "RNA-seq meta-analysis file is missing required columns: ",
+    paste(missing_rna, collapse = ", "),
+    "\nModify Script 06 to export meta_SE."
+  )
+}
+
+############################################################
+# CLEAN PLATFORM DATA
+############################################################
+
+micro_clean <- micro %>%
+  mutate(
+    Gene = toupper(trimws(Gene))
+  ) %>%
+  filter(
+    !is.na(Gene),
+    Gene != "",
+    is.finite(meta_logFC),
+    is.finite(meta_SE),
+    meta_SE > 0,
+    is.finite(meta_pval)
+  ) %>%
+  select(
+    Gene,
+    meta_logFC,
+    meta_SE,
+    meta_pval,
+    CI_lb,
+    CI_ub,
+    I2,
+    tau2,
+    n_studies
+  ) %>%
+  rename(
+    micro_logFC = meta_logFC,
+    micro_SE    = meta_SE,
+    micro_pval  = meta_pval,
+    micro_CI_lb = CI_lb,
+    micro_CI_ub = CI_ub,
+    micro_I2    = I2,
+    micro_tau2  = tau2,
+    micro_n     = n_studies
+  )
+
+rna_clean <- rna %>%
+  mutate(
+    Gene = toupper(trimws(Gene))
+  ) %>%
+  filter(
+    !is.na(Gene),
+    Gene != "",
+    is.finite(meta_logFC),
+    is.finite(meta_SE),
+    meta_SE > 0,
+    is.finite(meta_pval)
+  ) %>%
+  select(
+    Gene,
+    meta_logFC,
+    meta_SE,
+    meta_pval,
+    CI_lb,
+    CI_ub,
+    I2,
+    tau2,
+    n_studies
+  ) %>%
+  rename(
+    rna_logFC = meta_logFC,
+    rna_SE    = meta_SE,
+    rna_pval  = meta_pval,
+    rna_CI_lb = CI_lb,
+    rna_CI_ub = CI_ub,
+    rna_I2    = I2,
+    rna_tau2  = tau2,
+    rna_n     = n_studies
+  )
+
+############################################################
+# MERGE MICROARRAY AND RNA-SEQ RESULTS
+############################################################
+
+cat("Identifying genes represented by both platforms...\n")
+
+common <- inner_join(
+  micro_clean,
+  rna_clean,
+  by = "Gene"
+)
+
+cat(
+  "Genes shared between microarray and RNA-seq: ",
+  nrow(common),
+  "\n",
+  sep = ""
+)
+
+if(nrow(common) == 0) {
+  stop(
+    "Critical Error: No genes were shared between microarray and RNA-seq results."
+  )
+}
+
+############################################################
+# CHECK DIRECTIONAL CONSISTENCY
+############################################################
+#
+# We retain genes for which the platform-level effects have
+# the same direction.
+#
+# This preserves the original manuscript's requirement for
+# cross-platform directional concordance.
+############################################################
+
+common_harmonized <- common %>%
+  filter(
+    sign(micro_logFC) == sign(rna_logFC)
+  )
+
+cat(
+  "Genes with concordant direction across platforms: ",
+  nrow(common_harmonized),
+  "\n",
+  sep = ""
+)
+
+if(nrow(common_harmonized) == 0) {
+  stop(
+    "Critical Error: No genes showed concordant direction across platforms."
+  )
+}
+
+############################################################
+# PRECISION-WEIGHTED CROSS-PLATFORM INTEGRATION
+############################################################
+#
+# Inverse-variance weighting:
+#
+# weight = 1 / SE^2
+#
+# combined effect =
+#   sum(weight_i * effect_i) / sum(weight_i)
+#
+# combined SE =
+#   sqrt(1 / sum(weight_i))
+#
+############################################################
+
+cat("Performing inverse-variance weighted cross-platform integration...\n")
+
+common_meta <- common_harmonized %>%
+  mutate(
+
+    # ------------------------------------------------------
+    # Platform-specific inverse-variance weights
+    # ------------------------------------------------------
+
+    weight_microarray = 1 / (micro_SE^2),
+
+    weight_rnaseq = 1 / (rna_SE^2),
+
+    # ------------------------------------------------------
+    # Precision-weighted combined log2 fold change
+    # ------------------------------------------------------
+
+    combined_logFC =
+      (
+        weight_microarray * micro_logFC +
+        weight_rnaseq * rna_logFC
+      ) /
+      (
+        weight_microarray +
+        weight_rnaseq
+      ),
+
+    # ------------------------------------------------------
+    # Standard error of combined effect
+    # ------------------------------------------------------
+
+    combined_SE =
+      sqrt(
+        1 /
+        (
+          weight_microarray +
+          weight_rnaseq
+        )
+      ),
+
+    # ------------------------------------------------------
+    # 95% confidence interval
+    # ------------------------------------------------------
+
+    combined_CI_lb =
+      combined_logFC -
+      1.96 * combined_SE,
+
+    combined_CI_ub =
+      combined_logFC +
+      1.96 * combined_SE,
+
+    # ------------------------------------------------------
+    # Z statistic
+    # ------------------------------------------------------
+
+    combined_z =
+      combined_logFC / combined_SE,
+
+    # ------------------------------------------------------
+    # Two-sided p-value
+    # ------------------------------------------------------
+
+    combined_p =
+      2 * pnorm(
+        -abs(combined_z)
+      )
+  )
+
+############################################################
+# BENJAMINI-HOCHBERG MULTIPLE TESTING CORRECTION
+############################################################
+
+cat("Applying Benjamini-Hochberg FDR correction...\n")
+
+common_meta$FDR <- p.adjust(
+  common_meta$combined_p,
+  method = "BH"
+)
+
+############################################################
+# CALCULATE RELATIVE PLATFORM CONTRIBUTIONS
+############################################################
+
+common_meta <- common_meta %>%
+  mutate(
+
+    total_weight =
+      weight_microarray +
+      weight_rnaseq,
+
+    microarray_weight_fraction =
+      weight_microarray / total_weight,
+
+    rnaseq_weight_fraction =
+      weight_rnaseq / total_weight
+
+  )
+
+############################################################
+# SAVE COMPLETE CROSS-PLATFORM RESULTS
+############################################################
+
+write.csv(
+  common_meta,
+  "results/CrossPlatform_AllGenes_Weighted.csv",
+  row.names = FALSE
+)
+
+cat(
+  "Complete precision-weighted cross-platform results saved to:\n",
+  "results/CrossPlatform_AllGenes_Weighted.csv\n"
+)
+
+############################################################
+# SELECT SIGNIFICANT CROSS-PLATFORM GENES
+############################################################
+#
+# Same threshold used previously:
+# FDR < 0.05
+# absolute combined log2FC >= 1
+#
+############################################################
+
+final_genes <- common_meta %>%
+  filter(
+    FDR < 0.05,
+    abs(combined_logFC) >= 1
+  ) %>%
+  arrange(FDR)
+
+############################################################
+# SAVE FINAL CROSS-PLATFORM GENE LIST
+############################################################
+
+write.csv(
+  final_genes,
+  "results/CrossPlatform_Weighted_genes.csv",
+  row.names = FALSE
+)
+
+############################################################
+# OPTIONAL: SAVE UP/DOWN REGULATED LISTS
+############################################################
+
+up_genes <- final_genes %>%
+  filter(combined_logFC > 0)
+
+down_genes <- final_genes %>%
+  filter(combined_logFC < 0)
+
+write.csv(
+  up_genes,
+  "results/CrossPlatform_Weighted_UP.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  down_genes,
+  "results/CrossPlatform_Weighted_DOWN.csv",
+  row.names = FALSE
+)
+
+############################################################
+# SUMMARY
+############################################################
+
+cat("============================================================\n")
+cat("PRECISION-WEIGHTED CROSS-PLATFORM META-ANALYSIS COMPLETE\n")
+cat("============================================================\n")
+
+cat(
+  "Genes shared between platforms: ",
+  nrow(common),
+  "\n",
+  sep = ""
+)
+
+cat(
+  "Genes with concordant direction: ",
+  nrow(common_harmonized),
+  "\n",
+  sep = ""
+)
+
+cat(
+  "Significant cross-platform genes (FDR < 0.05 and |log2FC| >= 1): ",
+  nrow(final_genes),
+  "\n",
+  sep = ""
+)
+
+cat(
+  "Upregulated genes: ",
+  nrow(up_genes),
+  "\n",
+  sep = ""
+)
+
+cat(
+  "Downregulated genes: ",
+  nrow(down_genes),
+  "\n",
+  sep = ""
+)
+
+cat("============================================================\n")
+cat("Output files:\n")
+cat("1. results/CrossPlatform_AllGenes_Weighted.csv\n")
+cat("2. results/CrossPlatform_Weighted_genes.csv\n")
+cat("3. results/CrossPlatform_Weighted_UP.csv\n")
+cat("4. results/CrossPlatform_Weighted_DOWN.csv\n")
+cat("============================================================\n")
