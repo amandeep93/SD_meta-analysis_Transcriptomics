@@ -5,75 +5,82 @@ Project: Sleep Deprivation Meta-analysis (Cross-Platform Transcriptomics)
 
 1. PUBLIC DATA SOURCE
 ------------------------------------------------------------------------
-All transcriptomic datasets synthesized in this study were obtained from
-the National Center for Biotechnology Information (NCBI) Gene Expression
-Omnibus (GEO) database:
+All transcriptomic datasets included in this meta-analysis were obtained
+from the National Center for Biotechnology Information (NCBI) Gene
+Expression Omnibus (GEO) database:
 
 https://www.ncbi.nlm.nih.gov/geo/
 
-The GEO accession numbers listed below provide the primary source
-identifiers for the datasets included in the present analysis.
+The GEO accession numbers listed below provide the source identifiers for
+the datasets included in the present analysis.
 
 
 2. DATASET AND ACCESSION CORRESPONDENCE
 ------------------------------------------------------------------------
-The datasets represented in the current repository correspond to the
-cohorts identified in the manuscript as follows:
+The datasets included in the present meta-analysis correspond to the
+cohorts described in the manuscript Tables 2 and 3.
 
-  - Microarray Cohorts (Table 2):
-      GSE6514
-      GSE33302
+  Microarray Cohorts (Table 2):
+    GSE6514
+    GSE9443
+    GSE23628
+    GSE33491
+    GSE33302
+    GSE48369
+    GSE69079
+    GSE77393
+    GSE78215
+    GSE93041
+    GSE34424
 
-  - RNA-seq Cohorts (Table 3):
-      GSE132074
-      GSE144957
-      GSE222410
-      GSE113754
-      GSE211088
-      GSE211301
-      GSE156925
-      GSE166831
+  RNA-seq Cohorts (Table 3):
+    GSE132074
+    GSE144957
+    GSE222410
+    GSE113754
+    GSE211088
+    GSE211301
+    GSE156925
+    GSE166831
 
-The GEO accession numbers should be used to identify and retrieve the
-corresponding raw or processed source data and associated experimental
-metadata.
+The GEO accession numbers should be used to retrieve the corresponding
+raw or processed source data and associated experimental metadata.
 
 
 3. LOCAL REPOSITORY DATA POLICY
 ------------------------------------------------------------------------
-Raw sequencing reads, raw microarray CEL files, and large intermediate
-alignment files may be excluded from this GitHub repository because of
-file-size and repository-storage limitations.
+Large raw data files are not distributed within this GitHub repository
+because of file-size and repository-storage limitations.
 
-Specifically, the following large files are not distributed as part of
-the code repository:
+These may include:
 
-  - Raw FASTQ sequencing files (.fastq.gz)
+  - Raw sequencing reads (.fastq.gz)
   - Raw microarray CEL files (.CEL)
-  - Intermediate aligned BAM files
+  - Intermediate aligned sequencing files (.bam)
 
-These files remain available through the corresponding public GEO
-accessions.
+The original source data remain publicly available through their
+corresponding GEO accession numbers.
 
-The repository instead contains the analysis scripts and, where
-applicable, derived count matrices, processed results, metadata files,
-and visualization outputs required for downstream analysis.
+The repository contains the computational analysis scripts and, where
+applicable, processed count matrices, metadata, intermediate analytical
+results, and generated figures required for reproducing the downstream
+analysis.
 
 
 4. REPRODUCIBILITY AND DATA RETRIEVAL
 ------------------------------------------------------------------------
-The computational workflow can be reproduced by retrieving the
-corresponding source datasets and metadata from NCBI GEO and placing
-the required files in the directory structure specified by this
-repository.
+The computational workflow can be reproduced by retrieving the relevant
+source data and experimental metadata from NCBI GEO using the accession
+numbers listed above and placing the required files within the directory
+structure specified by this repository.
 
 The general analysis sequence is:
 
-  1. Retrieve the required raw or processed source data from GEO using
-     the accession numbers listed above.
+  1. Retrieve the required source data and associated experimental
+     metadata from GEO.
 
-  2. Place the downloaded files in the appropriate subdirectories
-     under the local 'data/' directory.
+  2. Place the required files in the appropriate subdirectories under
+     the local 'data/' directory.
 
   3. For RNA-seq datasets requiring upstream processing, perform quality
      control, adapter trimming, alignment, and gene-level quantification
@@ -88,45 +95,61 @@ The general analysis sequence is:
   6. Perform cross-platform precision-weighted synthesis using Script 07.
 
   7. Perform brain-region-stratified analyses using Script 08 where
-     sufficiently detailed region-level experimental metadata are
+     sufficiently detailed region- and contrast-level metadata are
      available.
 
 
-5. METADATA AND EXPERIMENTAL-UNIT REQUIREMENTS
+5. EXPERIMENTAL-UNIT AND METADATA CORRESPONDENCE
 ------------------------------------------------------------------------
-Reproducibility of the meta-analysis requires the correct mapping of
-samples, experimental conditions, and contrasts for each GEO dataset.
+Several GEO accessions contain multiple brain regions, experimental
+durations, or independent experimental contrasts. Accordingly, the GEO
+accession itself is not necessarily equivalent to a single independent
+meta-analytic observation.
 
-In particular, datasets containing multiple brain regions, time points,
-experimental contrasts, or shared control groups require
-sample/contrast-level metadata to ensure that independent experimental
-units are not incorrectly treated as independent studies.
+For meta-analysis, sample and contrast-level metadata are required to
+distinguish:
 
-For regional analyses, brain-region assignments must therefore be made
-at the level corresponding to the differential-expression contrast
-rather than being inferred solely from the GEO accession number.
+  - brain region;
+  - sleep-deprivation duration;
+  - experimental condition;
+  - sample identity;
+  - control groups; and
+  - other relevant experimental factors.
+
+Where multiple contrasts share animals or control samples, these
+relationships must be accounted for when determining the independence
+of effect estimates.
+
+For regional analyses, brain-region assignments are made at the level
+corresponding to the differential-expression contrast rather than being
+inferred solely from the GEO accession number.
 
 
-6. REFERENCE AND SOFTWARE INFORMATION
+6. REFERENCE GENOME AND SOFTWARE
 ------------------------------------------------------------------------
 RNA-seq preprocessing uses the GRCm39 reference genome with the
 GENCODE vM32 annotation framework.
 
 The analysis scripts document the principal software dependencies and
-analytical procedures used for preprocessing, differential expression,
-random-effects meta-analysis, cross-platform integration, and
-brain-region analysis.
+analytical procedures used for:
+
+  - RNA-seq preprocessing;
+  - microarray preprocessing;
+  - differential-expression analysis;
+  - platform-specific random-effects meta-analysis;
+  - cross-platform synthesis; and
+  - brain-region-stratified analysis.
 
 
 7. FURTHER INFORMATION
 ------------------------------------------------------------------------
-Additional dataset characteristics, experimental metadata, sample
-mappings, and phenotype information are provided in the manuscript
-and its Supplementary Tables.
+Detailed dataset characteristics, brain-region information, sample
+sizes, experimental durations, and references are provided in Tables 2
+and 3 of the manuscript and the associated Supplementary Tables.
 
-Questions concerning the repository structure, dataset mapping, or
-analysis implementation may be raised through the repository issue
-tracker.
+Additional questions concerning dataset mapping, metadata, repository
+structure, or analysis implementation may be raised through the
+repository issue tracker.
 
 
 ========================================================================
